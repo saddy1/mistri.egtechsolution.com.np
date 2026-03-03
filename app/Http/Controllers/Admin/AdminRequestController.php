@@ -65,9 +65,20 @@ class AdminRequestController extends Controller
 
         return back()->with('success', 'Request deleted successfully.');
     }
-    public function show(ServiceRequest $serviceRequest)
+public function show(ServiceRequest $serviceRequest)
 {
+    // Eager load the user to prevent N+1 queries
     $serviceRequest->load('user');
-    return view('admin.request_show', compact('serviceRequest'));
+
+    // Retrieve historical requests for this user, excluding the current one
+    $previousRequests = collect();
+    if ($serviceRequest->user_id) {
+        $previousRequests = ServiceRequest::where('user_id', $serviceRequest->user_id)
+            ->where('id', '!=', $serviceRequest->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    return view('admin.request_show', compact('serviceRequest', 'previousRequests'));
 }
 }
